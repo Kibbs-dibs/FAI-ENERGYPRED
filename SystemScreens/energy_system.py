@@ -40,25 +40,24 @@ class EnergyPredictionApp:
         days = ['0', '1', '2', '3', '4', '5', '6'] 
                      
         fields = [
-            ("Country", "country", countries),
-            ("Month (1-12)", "month", months),
-            ("Day of Week (0=Mon, 6=Sun)", "day_of_week", days),
-            ("Avg Temperature (°C)", "avg_temperature", "entry"),
-            ("Humidity (%)", "humidity", "entry"),
-            ("CO2 Emission", "co2_emission", "entry"),
-            ("Renewable Share (%)", "renewable_share", "entry"),
-            ("Urban Population (%)", "urban_population", "entry"),
-            ("Industrial Activity Index", "industrial_activity_index", "entry"),
-            ("Energy Price (USD)", "energy_price", "entry")
+            ("Country", "country", countries, None),
+            ("Month (1-12)", "month", months, None),
+            ("Day of Week (0=Mon, 6=Sun)", "day_of_week", days, None),
+            ("Avg Temperature (°C)", "avg_temperature", "entry", "25.0"),
+            ("Humidity (%)", "humidity", "entry", "60.0"),
+            ("CO2 Emission", "co2_emission", "entry", "400.5"),
+            ("Renewable Share (%)", "renewable_share", "entry", "15.0"),
+            ("Urban Population (%)", "urban_population", "entry", "75.0"),
+            ("Industrial Activity Index", "industrial_activity_index", "entry", "70.0"),
+            ("Energy Price (USD)", "energy_price", "entry", "115.0")
         ]
         
         # Generate UI using a 2-Column Grid
         row, col = 0, 0
-        for label_text, field_name, field_type in fields:
-            # Create a mini-container for each label+input pair
+        for label_text, field_name, field_type, default_val in fields:
             field_container = ttk.Frame(input_frame)
             field_container.grid(row=row, column=col, padx=20, pady=8, sticky="ew")
-            input_frame.columnconfigure(col, weight=1) # Distributes width evenly
+            input_frame.columnconfigure(col, weight=1) 
             
             lbl = ttk.Label(field_container, text=label_text)
             lbl.pack(anchor="w", pady=(0, 2))
@@ -68,11 +67,13 @@ class EnergyPredictionApp:
                 entry.set(field_type[0])
             else:
                 entry = ttk.Entry(field_container)
+                # QoL: Insert default values automatically
+                if default_val:
+                    entry.insert(0, default_val)
             
             entry.pack(fill="x")
             self.entries[field_name] = entry
             
-            # Logic to wrap to the next row after 2 columns
             col += 1
             if col > 1: 
                 col = 0

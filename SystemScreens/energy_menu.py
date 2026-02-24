@@ -26,7 +26,7 @@ class MainMenuApp:
         main_container = ttk.Frame(self.root, style="TFrame")
         main_container.place(relx=0.5, rely=0.5, anchor="center")
         
-        title = ttk.Label(main_container, text="Facility Energy Intelligence", style="Title.TLabel")
+        title = ttk.Label(main_container, text="Energy Consumption Predicktion System", style="Title.TLabel")
         title.pack(pady=(0, 5))
         
         self.subtitle = ttk.Label(main_container, text="LSTM-Based Energy Demand Forecasting", style="Subtitle.TLabel")
@@ -35,17 +35,23 @@ class MainMenuApp:
         btn_width = 25
         
         # Store buttons in a list so we can disable them during loading
+        # Store buttons in a list so we can disable them during loading
         self.buttons = []
         
-        btn_predict = ttk.Button(main_container, text="Energy Prediction System", style="Menu.TButton", width=btn_width, command=self.open_prediction_system)
+        btn_predict = ttk.Button(main_container, text="Start Predickting", style="Menu.TButton", width=btn_width, command=self.open_prediction_system)
         btn_predict.pack(pady=10)
         self.buttons.append(btn_predict)
         
         btn_stats = ttk.Button(main_container, text="Statistics & EDA", style="Menu.TButton", width=btn_width, command=self.open_stats)
         btn_stats.pack(pady=10)
         self.buttons.append(btn_stats)
+
+        # ADDED: Data History Button
+        btn_history = ttk.Button(main_container, text="Historical Data Viewer", style="Menu.TButton", width=btn_width, command=self.open_history)
+        btn_history.pack(pady=10)
+        self.buttons.append(btn_history)
         
-        btn_quit = ttk.Button(main_container, text="Exit Application", style="Menu.TButton", width=15, command=self.root.quit)
+        btn_quit = ttk.Button(main_container, text="Exit", style="Menu.TButton", width=15, command=self.root.quit)
         btn_quit.pack(pady=(40, 0))
         self.buttons.append(btn_quit)
 
@@ -94,6 +100,9 @@ class MainMenuApp:
 
     def open_stats(self):
         self.run_script("energy_stats.py")
+    
+    def open_history(self):
+        self.run_script("energy_history.py")
 
 if __name__ == "__main__":
     root = tk.Tk()
