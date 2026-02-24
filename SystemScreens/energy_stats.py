@@ -5,166 +5,96 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
+import sys
 
 class EnergyStatsApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Exploratory Data Analysis - Energy Statistics")
-        self.root.geometry("1280x720")
+        self.root.title("Exploratory Data Analysis")
+        self.root.geometry("1280x800") # Increased base size
+        
+        # Force window to maximize depending on OS
+        try:
+            self.root.state('zoomed') # Works on Windows
+        except tk.TclError:
+            self.root.attributes('-zoomed', True) # Works on Linux/Mac
+            
         self.root.configure(bg="white")
         
-        # Apply strict Black and White theme
-        self.style = ttk.Style()
-        if 'clam' in self.style.theme_names():
-            self.style.theme_use('clam')
-            
-        self.style.configure("TFrame", background="white")
-        self.style.configure("TLabel", background="white", foreground="black")
-        self.style.configure("Title.TLabel", font=("Helvetica", 24, "bold"), background="white", foreground="black")
-        self.style.configure("TNotebook", background="white", borderwidth=0)
-        self.style.configure("TNotebook.Tab", background="white", foreground="black", font=("Helvetica", 12, "bold"), padding=[10, 5])
-        self.style.map("TNotebook.Tab", background=[("selected", "#e0e0e0")])
-        self.style.configure("TButton", font=("Helvetica", 12), foreground="black")
-
+        # Bind the close button (X) to a strict kill protocol
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+        style = ttk.Style()
+        if 'clam' in style.theme_names(): 
+            style.theme_use('clam')
+        
         self.df = None
         self.load_data()
-        self.create_widgets()
+        
+        title = ttk.Label(root, text="Data Analytics Dashboard", font=("Helvetica", 24, "bold"), background="white")
+        title.pack(pady=20)
+        
+        self.notebook = ttk.Notebook(root)
+        self.notebook.pack(fill="both", expand=True, padx=30, pady=20)
+        
+        if self.df is not None:
+            self.create_tabs()
 
     def load_data(self):
-        """Load and preprocess the dataset for visualization"""
+        file_path = "../Climate_Energy_Consumption_Dataset_2020_2024.csv"
+        if not os.path.exists(file_path):
+            file_path = "../Climate_Energy_Consumption_Dataset_2020_2024.csv"
+            
         try:
-            # Dynamically find the dataset in the same folder as this script
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            csv_path = os.path.join(current_dir, "Energy_consumption_dataset.csv")
-            
-            # Load the dataset
-            self.df = pd.read_csv(csv_path)
-            
-            # Create a numerical copy for the correlation matrix
-            self.df_numeric = self.df.copy()
-            
-            # Map categorical to numeric for correlation
-            mapping_dict = {'Yes': 1, 'No': 0, 'On': 1, 'Off': 0}
-            for col in ['Holiday', 'HVACUsage', 'LightingUsage']:
-                if col in self.df_numeric.columns:
-                    self.df_numeric[col] = self.df_numeric[col].map(mapping_dict)
-            
-            # Drop purely categorical columns that can't be easily linearly correlated
-            if 'DayOfWeek' in self.df_numeric.columns:
-                self.df_numeric.drop(columns=['DayOfWeek'], inplace=True)
-                
-        except FileNotFoundError:
-            messagebox.showerror("File Not Found", f"Could not find 'Energy_consumption_dataset.csv' in:\n{current_dir}")
-            self.root.quit()
+            self.df = pd.read_csv(file_path)
         except Exception as e:
-            messagebox.showerror("Data Error", f"An error occurred while processing data:\n{e}")
-            self.root.quit()
+            messagebox.showerror("Data Error", f"Failed to load dataset: {e}")
 
-    def create_widgets(self):
-        # Header
-        header_frame = ttk.Frame(self.root)
-        header_frame.pack(fill="x", pady=10, padx=20)
+    def create_tabs(self):
+        # Tab 1: Correlation Matrix
+        tab1 = ttk.Frame(self.notebook)
+        self.notebook.add(tab1, text="Correlation Heatmap")
+        self.plot_correlation(tab1)
         
-        title = ttk.Label(header_frame, text="Energy Consumption Statistics & Analysis", style="Title.TLabel")
-        title.pack(side="left")
-        
-        close_btn = ttk.Button(header_frame, text="Close Window", command=self.root.quit)
-        close_btn.pack(side="right")
-        
-        # Notebook (Tabs)
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        # Create Tabs
-        self.tab1 = ttk.Frame(self.notebook)
-        self.tab2 = ttk.Frame(self.notebook)
-        self.tab3 = ttk.Frame(self.notebook)
-        
-        self.notebook.add(self.tab1, text="Distribution Analysis")
-        self.notebook.add(self.tab2, text="Correlation Heatmap")
-        self.notebook.add(self.tab3, text="Temperature vs Energy")
-        
-        # Populate Tabs
-        if self.df is not None:
-            self.plot_distribution(self.tab1)
-            self.plot_correlation(self.tab2)
-            self.plot_scatter(self.tab3)
+        # Tab 2: Country Comparison
+        tab2 = ttk.Frame(self.notebook)
+        self.notebook.add(tab2, text="Demand by Country")
+        self.plot_country_bar(tab2)
 
-    def draw_canvas(self, fig, parent_frame):
-        """Helper to draw matplotlib figure on tkinter canvas"""
-        fig.patch.set_facecolor('white') # Force white background for the figure
-        canvas = FigureCanvasTkAgg(fig, master=parent_frame)
+    def plot_correlation(self, parent):
+        fig, ax = plt.subplots(figsize=(10, 8))
+        numeric_df = self.df.select_dtypes(include=['float64', 'int64'])
+        sns.heatmap(numeric_df.corr(), annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+        plt.tight_layout()
+        
+        canvas = FigureCanvasTkAgg(fig, master=parent)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
 
-    def plot_distribution(self, parent):
-        """Plot a histogram showing the distribution of Energy Consumption"""
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.set_facecolor("white")
+    def plot_country_bar(self, parent):
+        fig, ax = plt.subplots(figsize=(10, 8))
+        avg_demand = self.df.groupby('country')['energy_consumption'].mean().sort_values(ascending=False)
         
-        sns.histplot(self.df['EnergyConsumption'], bins=50, kde=True, color="black", ax=ax)
+        # Fixed Seaborn Warning: Added hue and legend=False
+        sns.barplot(x=avg_demand.values, y=avg_demand.index, hue=avg_demand.index, palette="viridis", legend=False, ax=ax)
         
-        ax.set_title("Distribution of Energy Consumption", fontsize=16, color="black")
-        ax.set_xlabel("Energy Consumption (kWh)", fontsize=12, color="black")
-        ax.set_ylabel("Frequency", fontsize=12, color="black")
+        ax.set_title("Average Energy Consumption by Country", fontsize=16)
+        ax.set_xlabel("Energy Consumption (kWh)", fontsize=12)
+        ax.set_ylabel("") # Remove default 'country' label for cleaner look
+        plt.tight_layout()
         
-        # Style axes
-        ax.tick_params(colors="black")
-        for spine in ax.spines.values():
-            spine.set_color("black")
-            
-        fig.tight_layout()
-        self.draw_canvas(fig, parent)
-
-    def plot_correlation(self, parent):
-        """Plot a correlation heatmap to show feature relationships"""
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.set_facecolor("white")
+        canvas = FigureCanvasTkAgg(fig, master=parent)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
         
-        # Calculate correlation matrix
-        corr = self.df_numeric.corr()
-        
-        # Draw heatmap (using grayscale/black/white colormap to adhere to theme)
-        sns.heatmap(corr, annot=True, fmt=".2f", cmap="Greys", cbar=True, ax=ax, 
-                    annot_kws={"color": "black", "size": 9})
-        
-        ax.set_title("Feature Correlation Heatmap", fontsize=16, color="black")
-        ax.tick_params(colors="black", labelsize=10)
-        
-        fig.tight_layout()
-        self.draw_canvas(fig, parent)
-
-    def plot_scatter(self, parent):
-        """Plot Scatter plot of Temperature vs Energy Consumption by HVAC usage"""
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.set_facecolor("white")
-        
-        # We will use markers instead of colors to keep the black and white theme
-        hvac_on = self.df[self.df['HVACUsage'] == 'On']
-        hvac_off = self.df[self.df['HVACUsage'] == 'Off']
-        
-        ax.scatter(hvac_on['Temperature'], hvac_on['EnergyConsumption'], 
-                   color="black", marker="o", alpha=0.6, label="HVAC On")
-        ax.scatter(hvac_off['Temperature'], hvac_off['EnergyConsumption'], 
-                   color="gray", marker="x", alpha=0.6, label="HVAC Off")
-        
-        ax.set_title("Impact of Temperature & HVAC on Energy", fontsize=16, color="black")
-        ax.set_xlabel("Temperature (Celsius)", fontsize=12, color="black")
-        ax.set_ylabel("Energy Consumption (kWh)", fontsize=12, color="black")
-        
-        legend = ax.legend(facecolor="white", edgecolor="black", labelcolor="black")
-        legend.get_frame().set_linewidth(1.0)
-        
-        ax.tick_params(colors="black")
-        for spine in ax.spines.values():
-            spine.set_color("black")
-            
-        fig.tight_layout()
-        self.draw_canvas(fig, parent)
+    def on_closing(self):
+        """Strictly terminate to prevent matplotlib from hanging the parent process"""
+        plt.close('all') # Kill all matplotlib figures
+        self.root.quit()
+        self.root.destroy()
+        sys.exit(0) # Force Python to close this script entirely
 
 if __name__ == "__main__":
     root = tk.Tk()
-    # Set minimum window size to prevent UI squeezing
-    root.minsize(800, 600)
     app = EnergyStatsApp(root)
     root.mainloop()
