@@ -53,7 +53,7 @@ class MainMenuApp:
         
         # 2. EDA & Statistics Button
         btn_stats = ttk.Button(main_container, 
-                               text="Statistics & EDA", 
+                               text="Exploratory Data Analysis (Stats)", 
                                style="Menu.TButton",
                                width=btn_width,
                                command=self.open_stats)
@@ -61,7 +61,7 @@ class MainMenuApp:
         
         # 3. History Button
         btn_history = ttk.Button(main_container, 
-                                 text="Data History", 
+                                 text="Submission History", 
                                  style="Menu.TButton",
                                  width=btn_width,
                                  command=self.open_history)
@@ -75,38 +75,46 @@ class MainMenuApp:
                               command=self.root.quit)
         btn_quit.pack(pady=(50, 0))
 
-    def run_script(self, script_name):
-        """Helper method to run external python scripts safely"""
+    def run_script(self, script_name, close_menu=False):
+        """Helper method to run external python scripts safely in the same folder"""
         
-        # FORCE UI REFRESH: This ensures the button visually clicks 
-        # and doesn't freeze the main menu before opening the heavy subprocess
+        # Force UI refresh to prevent the button from freezing while launching subprocess
         self.root.update_idletasks() 
         
-        if os.path.exists(script_name):
+        # Dynamically get the exact directory where this energy_menu.py file is located
+        current_folder = os.path.dirname(os.path.abspath(__file__))
+        script_path = os.path.join(current_folder, script_name)
+        
+        if os.path.exists(script_path):
             try:
-                # sys.executable ensures it uses the same Python interpreter
-                # Popen runs the script asynchronously (won't freeze the menu)
-                subprocess.Popen([sys.executable, script_name])
+                # sys.executable ensures the new script uses the exact same Python interpreter
+                # Popen runs the script asynchronously
+                subprocess.Popen([sys.executable, script_path])
+                
+                # Close the main menu window if requested
+                if close_menu:
+                    self.root.destroy()
+                    
             except Exception as e:
                 messagebox.showerror("Execution Error", f"Failed to open {script_name}.\nError: {e}")
         else:
             messagebox.showwarning("File Not Found", 
-                                   f"The file '{script_name}' does not exist in the current directory yet.\n\n"
-                                   "Please create it to enable this feature.")
+                                   f"The file '{script_name}' does not exist in the folder:\n{current_folder}\n\n"
+                                   "Please ensure all files are in the same directory.")
 
     def open_prediction_system(self):
-        self.run_script("energy_system.py")
+        self.run_script("energy_system.py", close_menu=True)
 
     def open_stats(self):
-        self.run_script("energy_stats.py")
+        self.run_script("energy_stats.py", close_menu=True)
 
     def open_history(self):
-        self.run_script("energy_history.py")
+        self.run_script("energy_history.py", close_menu=True)
 
 if __name__ == "__main__":
     root = tk.Tk()
     
-    # Optional: Set minimum window size
+    # Set minimum window size to prevent UI squeezing
     root.minsize(800, 600)
     
     app = MainMenuApp(root)

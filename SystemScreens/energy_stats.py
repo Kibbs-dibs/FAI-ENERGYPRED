@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import os
 
 class EnergyStatsApp:
     def __init__(self, root):
@@ -32,8 +33,12 @@ class EnergyStatsApp:
     def load_data(self):
         """Load and preprocess the dataset for visualization"""
         try:
+            # Dynamically find the dataset in the same folder as this script
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            csv_path = os.path.join(current_dir, "Energy_consumption_dataset.csv")
+            
             # Load the dataset
-            self.df = pd.read_csv("Energy_consumption_dataset.csv")
+            self.df = pd.read_csv(csv_path)
             
             # Create a numerical copy for the correlation matrix
             self.df_numeric = self.df.copy()
@@ -49,7 +54,7 @@ class EnergyStatsApp:
                 self.df_numeric.drop(columns=['DayOfWeek'], inplace=True)
                 
         except FileNotFoundError:
-            messagebox.showerror("File Not Found", "Could not find 'Energy_consumption_dataset.csv'.\nPlease ensure it is in the same directory.")
+            messagebox.showerror("File Not Found", f"Could not find 'Energy_consumption_dataset.csv' in:\n{current_dir}")
             self.root.quit()
         except Exception as e:
             messagebox.showerror("Data Error", f"An error occurred while processing data:\n{e}")
@@ -87,7 +92,7 @@ class EnergyStatsApp:
 
     def draw_canvas(self, fig, parent_frame):
         """Helper to draw matplotlib figure on tkinter canvas"""
-        fig.patch.set_facecolor('white') # Force white background
+        fig.patch.set_facecolor('white') # Force white background for the figure
         canvas = FigureCanvasTkAgg(fig, master=parent_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
@@ -95,6 +100,8 @@ class EnergyStatsApp:
     def plot_distribution(self, parent):
         """Plot a histogram showing the distribution of Energy Consumption"""
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_facecolor("white")
+        
         sns.histplot(self.df['EnergyConsumption'], bins=50, kde=True, color="black", ax=ax)
         
         ax.set_title("Distribution of Energy Consumption", fontsize=16, color="black")
@@ -112,6 +119,7 @@ class EnergyStatsApp:
     def plot_correlation(self, parent):
         """Plot a correlation heatmap to show feature relationships"""
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_facecolor("white")
         
         # Calculate correlation matrix
         corr = self.df_numeric.corr()
@@ -129,6 +137,7 @@ class EnergyStatsApp:
     def plot_scatter(self, parent):
         """Plot Scatter plot of Temperature vs Energy Consumption by HVAC usage"""
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_facecolor("white")
         
         # We will use markers instead of colors to keep the black and white theme
         hvac_on = self.df[self.df['HVACUsage'] == 'On']
@@ -143,7 +152,9 @@ class EnergyStatsApp:
         ax.set_xlabel("Temperature (Celsius)", fontsize=12, color="black")
         ax.set_ylabel("Energy Consumption (kWh)", fontsize=12, color="black")
         
-        ax.legend(facecolor="white", edgecolor="black", labelcolor="black")
+        legend = ax.legend(facecolor="white", edgecolor="black", labelcolor="black")
+        legend.get_frame().set_linewidth(1.0)
+        
         ax.tick_params(colors="black")
         for spine in ax.spines.values():
             spine.set_color("black")
@@ -153,5 +164,7 @@ class EnergyStatsApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    # Set minimum window size to prevent UI squeezing
+    root.minsize(800, 600)
     app = EnergyStatsApp(root)
     root.mainloop()
