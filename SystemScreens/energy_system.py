@@ -1,9 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import numpy as np
+import pandas as pd
 import os
 import joblib
 import math
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import sys
 
 try:
     import tensorflow as tf
@@ -15,9 +19,11 @@ class EnergyPredictionApp:
         self.root = root
         self.root.title("Energy Consumption Predictor")
         
-        # Changed window to be wider and shorter (850x550)
-        self.root.geometry("850x550")
+        self.root.geometry("900x700")
         self.root.configure(bg="white")
+        
+        # --- NEW: Bind the close button to our strict kill protocol ---
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
         style = ttk.Style()
         if 'clam' in style.theme_names():
@@ -26,13 +32,11 @@ class EnergyPredictionApp:
         title_label = ttk.Label(root, text="Energy Consumption Prediction", font=("Helvetica", 18, "bold"), background="white")
         title_label.pack(pady=15)
         
-        # Grid Container
         input_frame = ttk.Frame(root, padding="10")
-        input_frame.pack(fill="both", expand=True, padx=30)
+        input_frame.pack(fill="x", padx=30)
         
         self.entries = {}
         
-        # Pre-defined options for dropdowns
         countries = ['Germany', 'France', 'Netherlands', 'Italy', 'Spain', 'Sweden', 'Norway',
                      'Poland', 'Turkey', 'United Kingdom', 'United States', 'Canada', 'Brazil',
                      'India', 'China', 'Japan', 'Australia', 'South Africa', 'Mexico', 'Indonesia']
@@ -52,7 +56,6 @@ class EnergyPredictionApp:
             ("Energy Price (USD)", "energy_price", "entry", "115.0")
         ]
         
-        # Generate UI using a 2-Column Grid
         row, col = 0, 0
         for label_text, field_name, field_type, default_val in fields:
             field_container = ttk.Frame(input_frame)
@@ -67,7 +70,6 @@ class EnergyPredictionApp:
                 entry.set(field_type[0])
             else:
                 entry = ttk.Entry(field_container)
-                # QoL: Insert default values automatically
                 if default_val:
                     entry.insert(0, default_val)
             
@@ -87,12 +89,29 @@ class EnergyPredictionApp:
         ttk.Button(btn_frame, text="Clear Fields", command=self.clear_fields).pack(side="left", padx=10)
         
         self.result_label = ttk.Label(root, text="", font=("Helvetica", 16, "bold"), foreground="#27ae60", background="white")
-        self.result_label.pack(pady=(5, 15))
+        self.result_label.pack(pady=(5, 5))
+
+        self.graph_frame = tk.Frame(root, bg="white")
+        self.graph_frame.pack(fill="both", expand=True, padx=30, pady=10)
+        self.canvas_widget = None 
 
         self.load_models()
+        self.load_historical_data() 
+
+    def load_historical_data(self):
+        file_path = "Climate_Energy_Consumption_Dataset_2020_2024.csv"
+        if not os.path.exists(file_path):
+            file_path = "Climate & Energy Consumption 2020 - 2024.csv"
+            if not os.path.exists(file_path):
+                file_path = "../Climate_Energy_Consumption_Dataset_2020_2024.csv"
+        try:
+            self.hist_df = pd.read_csv(file_path)
+            self.hist_df['date'] = pd.to_datetime(self.hist_df['date'])
+            self.hist_df['month'] = self.hist_df['date'].dt.month
+        except Exception:
+            self.hist_df = None 
 
     def load_models(self):
-        """Loads the saved LSTM model and preprocessing scalers."""
         if tf is None:
             messagebox.showerror("Dependency Error", "TensorFlow is not installed.")
             return
@@ -130,7 +149,6 @@ class EnergyPredictionApp:
             month_cos = math.cos(2 * math.pi * month / 12)
             country_encoded = self.label_encoder.transform([country])[0]
             
-            import pandas as pd
             feature_names = [
                 'avg_temperature', 'humidity', 'co2_emission', 'renewable_share', 
                 'urban_population', 'industrial_activity_index', 'energy_price', 
@@ -152,11 +170,11 @@ class EnergyPredictionApp:
             scaled_pred_df = pd.DataFrame(scaled_prediction, columns=['energy_consumption'])
             actual_prediction = self.scaler_y.inverse_transform(scaled_pred_df)[0][0]
             
-            final_text = f"Predicted Demand:\n{actual_prediction:,.2f} kWh"
+            final_text = f"Predicted Demand: {actual_prediction:,.2f} kWh"
             self.result_label.config(text=final_text, foreground="#27ae60")
             self.predict_btn.config(state="normal")
             
-            messagebox.showinfo("Inference Complete", f"The AI has processed the data.\n\n{final_text}")
+            self.plot_prediction(actual_prediction, country, month)
             
         except ValueError:
             messagebox.showerror("Input Error", "Please ensure all fields are filled with valid numbers.")
@@ -167,6 +185,42 @@ class EnergyPredictionApp:
             self.result_label.config(text="")
             self.predict_btn.config(state="normal")
 
+    def plot_prediction(self, predicted_val, country, month):
+        if self.canvas_widget:
+            self.canvas_widget.destroy()
+
+        baseline_val = 0
+        if self.hist_df is not None:
+            mask = (self.hist_df['country'] == country) & (self.hist_df['month'] == month)
+            filtered_data = self.hist_df[mask]
+            if not filtered_data.empty:
+                baseline_val = filtered_data['energy_consumption'].mean()
+
+        fig, ax = plt.subplots(figsize=(6, 3))
+        
+        categories = ['Historical Avg', 'AI Prediction']
+        values = [baseline_val, predicted_val]
+        colors = ['#95a5a6', '#27ae60'] 
+        
+        bars = ax.bar(categories, values, color=colors, width=0.5)
+        
+        ax.set_title(f"Demand Context: {country} in Month {month}", fontsize=12, pad=10)
+        ax.set_ylabel("Energy (kWh)", fontsize=10)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        for bar in bars:
+            yval = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2, yval + (max(values)*0.02), 
+                    f"{yval:,.0f}", ha='center', va='bottom', fontweight='bold')
+
+        fig.tight_layout()
+        
+        canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
+        canvas.draw()
+        self.canvas_widget = canvas.get_tk_widget()
+        self.canvas_widget.pack(fill="both", expand=True)
+
     def clear_fields(self):
         for entry in self.entries.values():
             if isinstance(entry, ttk.Combobox):
@@ -174,6 +228,16 @@ class EnergyPredictionApp:
             else:
                 entry.delete(0, tk.END)
         self.result_label.config(text="")
+        if self.canvas_widget:
+            self.canvas_widget.destroy()
+
+    # --- NEW: Strict Kill Protocol ---
+    def on_closing(self):
+        """Forces matplotlib and TensorFlow to release memory and terminates the script."""
+        plt.close('all') 
+        self.root.quit()
+        self.root.destroy()
+        sys.exit(0) 
 
 if __name__ == "__main__":
     root = tk.Tk()
