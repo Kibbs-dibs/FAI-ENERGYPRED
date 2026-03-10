@@ -26,7 +26,7 @@ class MainMenuApp:
         main_container = ttk.Frame(self.root, style="TFrame")
         main_container.place(relx=0.5, rely=0.5, anchor="center")
         
-        title = ttk.Label(main_container, text="Energy Consumption Predicktion System", style="Title.TLabel")
+        title = ttk.Label(main_container, text="Energy Consumption Prediction System", style="Title.TLabel")
         title.pack(pady=(0, 5))
         
         self.subtitle = ttk.Label(main_container, text="LSTM-Based Energy Demand Forecasting", style="Subtitle.TLabel")
@@ -38,7 +38,7 @@ class MainMenuApp:
         # Store buttons in a list so we can disable them during loading
         self.buttons = []
         
-        btn_predict = ttk.Button(main_container, text="Start Predickting", style="Menu.TButton", width=btn_width, command=self.open_prediction_system)
+        btn_predict = ttk.Button(main_container, text="Start Predicting", style="Menu.TButton", width=btn_width, command=self.open_prediction_system)
         btn_predict.pack(pady=10)
         self.buttons.append(btn_predict)
         
