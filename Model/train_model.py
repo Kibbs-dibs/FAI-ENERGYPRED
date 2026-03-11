@@ -101,4 +101,40 @@ joblib.dump(scaler_X, 'saved_models/scaler_X.pkl')
 joblib.dump(scaler_y, 'saved_models/scaler_y.pkl')
 joblib.dump(label_encoder, 'saved_models/label_encoder.pkl')
 
+import matplotlib.pyplot as plt
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+print("\n8. Generating Evaluation Metrics & Visualization...")
+# Generate predictions on the test set
+y_pred_scaled = model.predict(X_test)
+
+# Inverse transform to get actual kWh values
+# FIX: Reshape y_test into a 2D array so the scaler can process it
+y_pred = scaler_y.inverse_transform(y_pred_scaled)
+y_actual = scaler_y.inverse_transform(y_test.reshape(-1, 1))
+
+# Calculate final metrics
+mae = mean_absolute_error(y_actual, y_pred)
+rmse = np.sqrt(mean_squared_error(y_actual, y_pred))
+
+print(f"Final Test MAE: {mae:,.2f} kWh")
+print(f"Final Test RMSE: {rmse:,.2f} kWh")
+
+# Plot a slice of the test data (e.g., 100 days) for visual comparison
+slice_length = 100
+plt.figure(figsize=(12, 5))
+plt.plot(y_actual[:slice_length], label='Actual Demand (kWh)', color='#95a5a6', linewidth=2)
+plt.plot(y_pred[:slice_length], label='LSTM Predicted Demand (kWh)', color='#27ae60', linestyle='--', linewidth=2)
+
+plt.title('LSTM Model Evaluation: Actual vs Predicted Energy Demand', fontsize=14, pad=15)
+plt.xlabel('Time (Days)', fontsize=12)
+plt.ylabel('Energy Consumption (kWh)', fontsize=12)
+plt.legend(loc='upper right')
+plt.grid(True, linestyle=':', alpha=0.6)
+plt.tight_layout()
+
+# Save the plot as an image file
+plt.savefig('lstm_evaluation_chart.png', dpi=300)
+print("Saved evaluation chart as 'lstm_evaluation_chart.png'.")
+
 print("Pipeline Complete! The model and scalers are ready to be loaded by your Tkinter UI.")
