@@ -317,7 +317,11 @@ class ReportGeneratorApp:
         for i, (name, value, desc, color) in enumerate(metrics):
             ax = fig.add_subplot(gs[i // 2, i % 2])
             ax.set_facecolor(color)
-            ax.axis('off')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+            ax.patch.set_visible(True)  
             ax.text(0.5, 0.65, name, ha='center', fontsize=22, fontweight='bold',
                     color='white', transform=ax.transAxes)
             ax.text(0.5, 0.38, value, ha='center', fontsize=18, color='white',
