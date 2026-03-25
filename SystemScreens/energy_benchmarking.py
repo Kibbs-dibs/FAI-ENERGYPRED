@@ -220,11 +220,46 @@ class BenchmarkApp:
         self.run_btn.config(state="normal")
 
     def embed(self, fig, parent):
-        for w in parent.winfo_children():
-            w.destroy()
-        canvas = FigureCanvasTkAgg(fig, master=parent)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True)
+        outer = tk.Frame(parent, bg="white")
+        outer.pack(fill="both", expand=True)
+
+        v_scroll = ttk.Scrollbar(outer, orient="vertical")
+        v_scroll.pack(side="right", fill="y")
+        h_scroll = ttk.Scrollbar(outer, orient="horizontal")
+        h_scroll.pack(side="bottom", fill="x")
+
+        tk_canvas = tk.Canvas(outer, bg="white",
+                            yscrollcommand=v_scroll.set,
+                            xscrollcommand=h_scroll.set)
+        tk_canvas.pack(side="left", fill="both", expand=True)
+
+        v_scroll.config(command=tk_canvas.yview)
+        h_scroll.config(command=tk_canvas.xview)
+
+        fig_canvas = FigureCanvasTkAgg(fig, master=tk_canvas)
+        fig_canvas.draw()
+        fig_widget = fig_canvas.get_tk_widget()
+        tk_canvas.create_window((0, 0), window=fig_widget, anchor="nw")
+
+        # KEY FIX: Update scroll region AFTER widget fully renders
+        def update_scrollregion(event=None):
+            tk_canvas.update_idletasks()
+            tk_canvas.config(scrollregion=tk_canvas.bbox("all"))
+
+        fig_widget.bind("<Configure>", update_scrollregion)
+
+        # Scroll UP/DOWN with mouse wheel
+        def on_scroll_y(event):
+            tk_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        # Scroll LEFT/RIGHT with Shift + mouse wheel
+        def on_scroll_x(event):
+            tk_canvas.xview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        tk_canvas.bind("<MouseWheel>", on_scroll_y)
+        tk_canvas.bind("<Shift-MouseWheel>", on_scroll_x)
+        fig_widget.bind("<MouseWheel>", on_scroll_y)
+        fig_widget.bind("<Shift-MouseWheel>", on_scroll_x)
 
     def build_metrics_tab(self, all_metrics):
         tab = self.tab_performance_metrics

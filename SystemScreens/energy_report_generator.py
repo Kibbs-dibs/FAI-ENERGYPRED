@@ -34,7 +34,7 @@ def create_sequences(data, time_steps):
 class ReportGeneratorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("AI Performance Report Generator")
+        self.root.title("Performance Report Generator")
         self.root.geometry("820x640")
         self.root.configure(bg="white")
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -43,7 +43,7 @@ class ReportGeneratorApp:
         if 'clam' in style.theme_names():
             style.theme_use('clam')
 
-        ttk.Label(root, text="📊  AI Performance Report Generator",
+        ttk.Label(root, text="📊 Performance Report Generator",
                   font=("Helvetica", 22, "bold"), background="white").pack(pady=(25, 4))
         ttk.Label(root,
                   text="Generates a comprehensive multi-page PDF evaluation report of the LSTM system",
@@ -237,7 +237,7 @@ class ReportGeneratorApp:
         props = dict(ha='center', transform=fig.transFigure)
         fig.text(0.5, 0.72, "LSTM Energy Demand Prediction System",
                  fontsize=26, fontweight='bold', color='white', **props)
-        fig.text(0.5, 0.62, "AI Performance Evaluation Report",
+        fig.text(0.5, 0.62, "Performance Evaluation Report",
                  fontsize=20, color='#27ae60', **props)
         fig.text(0.5, 0.50, "CT032-3-3 Further Artificial Intelligence",
                  fontsize=14, color='#bdc3c7', **props)
