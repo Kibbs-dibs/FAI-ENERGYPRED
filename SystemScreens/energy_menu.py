@@ -50,6 +50,18 @@ class MainMenuApp:
         btn_history = ttk.Button(main_container, text="Historical Data Viewer", style="Menu.TButton", width=btn_width, command=self.open_history)
         btn_history.pack(pady=10)
         self.buttons.append(btn_history)
+
+        btn_adv_eda = ttk.Button(main_container, text="Advanced Analytics", style="Menu.TButton", width=btn_width, command=lambda: self.run_script("energy_advanced_eda.py"))
+        btn_adv_eda.pack(pady=10)
+        self.buttons.append(btn_adv_eda)
+
+        btn_benchmark = ttk.Button(main_container, text="Model Benchmarking", style="Menu.TButton", width=btn_width, command=lambda: self.run_script("energy_benchmarking.py"))
+        btn_benchmark.pack(pady=10)
+        self.buttons.append(btn_benchmark)
+
+        btn_report = ttk.Button(main_container, text="Generate PDF Report", style="Menu.TButton", width=btn_width, command=lambda: self.run_script("energy_report_generator.py"))
+        btn_report.pack(pady=10)
+        self.buttons.append(btn_report)
         
         btn_quit = ttk.Button(main_container, text="Exit", style="Menu.TButton", width=15, command=self.root.quit)
         btn_quit.pack(pady=(40, 0))
